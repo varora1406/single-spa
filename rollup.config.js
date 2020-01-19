@@ -3,7 +3,8 @@ import babel from 'rollup-plugin-babel'
 import commonjs from 'rollup-plugin-commonjs'
 import analyzer from 'rollup-plugin-analyzer'
 
-const isProduction = process.env.NODE_ENV === 'production'
+const isProduction = process.env.NODE_ENV == 'production'||process.env.NODE_ENV=="'production'"
+
 const useAnalyzer = process.env.ANALYZER === 'analyzer'
 
 export default (async () => ([

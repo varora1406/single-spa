@@ -13,10 +13,10 @@ const capturedEventListeners = {
 
 export const routingEventsListeningTo = ['hashchange', 'popstate'];
 
-export function navigateToUrl(obj, opts={}) {
+export function navigateToUrl(obj, opts = {}) {
   let url;
   if (typeof obj === 'string') {
-    url = obj ;
+    url = obj;
   } else if (this && this.href) {
     url = this.href;
   } else if (obj && obj.currentTarget && obj.currentTarget.href && obj.preventDefault) {
@@ -33,7 +33,7 @@ export function navigateToUrl(obj, opts={}) {
     window.location.hash = '#' + destination.anchor;
   } else if (current.host !== destination.host && destination.host) {
     if (opts.isTestingEnv) {
-      return {wouldHaveReloadedThePage: true};
+      return { wouldHaveReloadedThePage: true };
     } else {
       window.location.href = url;
     }
@@ -68,12 +68,15 @@ function urlReroute() {
 
 // We will trigger an app change for any routing events.
 window.addEventListener('hashchange', urlReroute);
-window.addEventListener('popstate', urlReroute);
+window.addEventListener('popstate', (args) => {
+  window.isNavGoOrBack = true;
+  urlReroute(args);
+});
 
 // Monkeypatch addEventListener so that we can ensure correct timing
 const originalAddEventListener = window.addEventListener;
 const originalRemoveEventListener = window.removeEventListener;
-window.addEventListener = function(eventName, fn) {
+window.addEventListener = function (eventName, fn) {
   if (typeof fn === 'function') {
     if (routingEventsListeningTo.indexOf(eventName) >= 0 && !find(capturedEventListeners[eventName], listener => listener === fn)) {
       capturedEventListeners[eventName].push(fn);
@@ -84,7 +87,7 @@ window.addEventListener = function(eventName, fn) {
   return originalAddEventListener.apply(this, arguments);
 }
 
-window.removeEventListener = function(eventName, listenerFn) {
+window.removeEventListener = function (eventName, listenerFn) {
   if (typeof listenerFn === 'function') {
     if (routingEventsListeningTo.indexOf(eventName) >= 0) {
       capturedEventListeners[eventName] = capturedEventListeners[eventName].filter(fn => fn !== listenerFn);
@@ -96,18 +99,19 @@ window.removeEventListener = function(eventName, listenerFn) {
 }
 
 const originalPushState = window.history.pushState;
-window.history.pushState = function(state) {
+window.history.pushState = function (state) {
   const result = originalPushState.apply(this, arguments);
-
+  window.isNavGoOrBack = false;
   urlReroute(createPopStateEvent(state));
-  
+
   return result;
 }
 
 const originalReplaceState = window.history.replaceState;
-window.history.replaceState = function(state) {
+window.history.replaceState = function (state) {
   const result = originalReplaceState.apply(this, arguments);
-  urlReroute(createPopStateEvent(state));
+  if (window.isNavGoOrBack)
+    urlReroute(createPopStateEvent(state));
   return result;
 }
 
@@ -116,7 +120,7 @@ function createPopStateEvent(state) {
   // We need a popstate event even though the browser doesn't do one by default when you call replaceState, so that
   // all the applications can reroute.
   try {
-    return new PopStateEvent('popstate', {state});
+    return new PopStateEvent('popstate', { state });
   } catch (err) {
     // IE 11 compatibility https://github.com/CanopyTax/single-spa/issues/299
     // https://docs.microsoft.com/en-us/openspecs/ie_standards/ms-html5e/bd560f47-b349-4d2c-baa8-f1560fb489dd
@@ -138,18 +142,18 @@ function parseUri(str) {
   // http://blog.stevenlevithan.com/archives/parseuri
   const parseOptions = {
     strictMode: true,
-    key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
-    q:   {
-      name:   "queryKey",
+    key: ["source", "protocol", "authority", "userInfo", "user", "password", "host", "port", "relative", "path", "directory", "file", "query", "anchor"],
+    q: {
+      name: "queryKey",
       parser: /(?:^|&)([^&=]*)=?([^&]*)/g
     },
     parser: {
       strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
-      loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+      loose: /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
     }
   };
 
-  let  o = parseOptions;
+  let o = parseOptions;
   let m = o.parser[o.strictMode ? "strict" : "loose"].exec(str);
   let uri = {};
   let i = 14;
