@@ -17,11 +17,6 @@
     "test:watch": "BABEL_ENV=test jest --config jest.config.json --watch",
     "lint": "eslint src"
   },
-  "husky": {
-    "hooks": {
-      "pre-push": "yarn test && yarn lint"
-    }
-  },
   "files": [
     "lib",
     "typings"

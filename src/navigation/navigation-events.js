@@ -69,7 +69,6 @@ function urlReroute() {
 // We will trigger an app change for any routing events.
 window.addEventListener('hashchange', urlReroute);
 window.addEventListener('popstate', (args) => {
-  window.isNavGoOrBack = true;
   urlReroute(args);
 });
 
@@ -101,7 +100,6 @@ window.removeEventListener = function (eventName, listenerFn) {
 const originalPushState = window.history.pushState;
 window.history.pushState = function (state) {
   const result = originalPushState.apply(this, arguments);
-  window.isNavGoOrBack = false;
   urlReroute(createPopStateEvent(state));
 
   return result;
@@ -110,8 +108,9 @@ window.history.pushState = function (state) {
 const originalReplaceState = window.history.replaceState;
 window.history.replaceState = function (state) {
   const result = originalReplaceState.apply(this, arguments);
-  if (window.isNavGoOrBack)
+  setTimeout(() => {
     urlReroute(createPopStateEvent(state));
+  }, 50);
   return result;
 }
 
